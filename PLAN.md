@@ -28,8 +28,11 @@
   Node 스텁 테스트 통과: T04 12개(기본값, 검증, 지연 표시, 검색·필터 AND, 필터 중 수정·삭제, 호환·손상값, 새로고침 유지), T03 회귀 12개.
   Windows 브라우저에서 사용자 확인 정상(어제 마감 TODO 지연 표시, 필터 AND, 필터 중 수정·삭제, 새로고침 유지). 남은 오류 없음.
 ## 3장: API
-- [ ] T05: API-SPEC.md 작성, FastAPI /api/health 구현.
+- [x] T05: API-SPEC.md 작성, FastAPI /api/health 구현.
   확인: curl로 200과 status=ok.
+  기록(2026-10-13): API-SPEC.md(T05~T08 계약), backend/__init__.py, backend/main.py, requirements.txt(fastapi 0.143.0, uvicorn 0.54.0), .gitignore 생성.
+  실행: .venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 (Python 3.10.12)
+  결과: curl -i /api/health → 200, {"status":"ok"}. /docs 200, 없는 경로 404. 남은 오류 없음.
 - [ ] T06: 메모리 기반 /api/tasks GET과 POST.
   확인: /docs에서 등록 후 조회. 입력 위반은 422.
 - [ ] T07: PATCH·DELETE와 필터 구현.

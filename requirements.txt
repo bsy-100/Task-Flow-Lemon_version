@@ -1,0 +1,4 @@
+# FastAPI: API 서버 프레임워크
+fastapi==0.143.0
+# uvicorn: FastAPI 앱을 실행하는 ASGI 서버
+uvicorn==0.54.0
