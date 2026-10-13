@@ -1,16 +1,28 @@
+import logging
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.exc import SQLAlchemyError
 
 from .schemas import Priority, Status, Task, TaskCreate, TaskUpdate
-from .store import MemoryTaskStore
+from .store import DbTaskStore
 
 app = FastAPI(title="Task Flow API")
-store = MemoryTaskStore()
+store = DbTaskStore()
+logger = logging.getLogger(__name__)
 
 TASK_NOT_FOUND = "할 일을 찾을 수 없습니다."
+DATABASE_ERROR = "DB에 연결할 수 없거나 처리 중 오류가 발생했습니다."
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+
+
+@app.exception_handler(SQLAlchemyError)
+def handle_database_error(request: Request, error: SQLAlchemyError) -> JSONResponse:
+    """DB 오류는 내부 내용을 응답에 노출하지 않고 503으로 알린다. 자세한 내용은 서버 로그에 남긴다."""
+    logger.error("DB 오류: %s %s: %s", request.method, request.url.path, error)
+    return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"detail": DATABASE_ERROR})
 
 
 @app.get("/api/health")
