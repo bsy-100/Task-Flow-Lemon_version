@@ -1,8 +1,9 @@
 "use strict";
 
+const API_BASE = "/api";
 const TITLE_MAX_LENGTH = 100;
 const DESCRIPTION_MAX_LENGTH = 2000;
-const STORAGE_KEY = "task-flow-v1";
+const SEARCH_DELAY_MS = 300;
 const STATUSES = [
   { value: "TODO", label: "할 일" },
   { value: "DOING", label: "진행 중" },
@@ -13,18 +14,20 @@ const PRIORITIES = [
   { value: "NORMAL", label: "보통" },
   { value: "LOW", label: "낮음" },
 ];
-const DEFAULT_STATUS = "TODO";
 const DEFAULT_PRIORITY = "NORMAL";
 
-const tasks = [];
-// 저장값을 읽지 못하면 기존 값을 덮어쓰지 않도록 저장을 막는다.
-let storageBlocked = false;
+// 마지막으로 API에서 받은 목록(검색·필터 적용 결과).
+let tasks = [];
+let loadFailed = false;
+// 늦게 도착한 이전 목록 응답이 최신 결과를 덮어쓰지 않도록 요청 번호를 비교한다.
+let listRequestId = 0;
+let searchTimer = null;
 // 수정 중인 항목의 id. 한 번에 하나만 수정한다.
 let editingId = null;
 let editError = "";
 // 수정을 시작하거나 수정 오류가 났을 때만 수정 입력칸으로 포커스를 옮긴다.
 let focusEditForm = false;
-// 제목 검색, 상태, 우선순위 필터. 빈 값은 조건 없음이며 모두 AND로 적용한다.
+// 제목 검색, 상태, 우선순위 필터. 빈 값은 조건 없음이며 API에서 AND로 적용한다.
 const filters = { query: "", status: "", priority: "" };
 
 const form = document.getElementById("task-form");
@@ -34,7 +37,7 @@ const priorityInput = document.getElementById("task-priority");
 const dueInput = document.getElementById("task-due");
 const submitButton = document.getElementById("submit-button");
 const formError = document.getElementById("form-error");
-const storageError = document.getElementById("storage-error");
+const apiError = document.getElementById("api-error");
 const searchInput = document.getElementById("search-input");
 const statusFilter = document.getElementById("filter-status");
 const priorityFilter = document.getElementById("filter-priority");
@@ -42,18 +45,58 @@ const taskList = document.getElementById("task-list");
 const taskCount = document.getElementById("task-count");
 const emptyMessage = document.getElementById("empty-message");
 
-function createId() {
-  if (window.crypto && typeof window.crypto.randomUUID === "function") {
-    return window.crypto.randomUUID();
+class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
   }
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+// FastAPI 오류 응답({"detail": ...})을 화면에 보여 줄 문장으로 바꾼다.
+function errorMessage(body, status) {
+  if (body && Array.isArray(body.detail) && body.detail.length > 0) {
+    return body.detail.map((item) => String(item.msg).replace(/^Value error, /, "")).join(" ");
+  }
+  if (body && typeof body.detail === "string") {
+    return body.detail;
+  }
+  return `요청을 처리하지 못했습니다. (HTTP ${status})`;
+}
+
+async function request(method, path, body) {
+  const options = { method };
+  if (body !== undefined) {
+    options.headers = { "Content-Type": "application/json" };
+    options.body = JSON.stringify(body);
+  }
+
+  let response;
+  try {
+    response = await window.fetch(`${API_BASE}${path}`, options);
+  } catch (networkError) {
+    throw new ApiError("API 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인하세요.", 0);
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (parseError) {
+    data = null;
+  }
+  if (!response.ok) {
+    throw new ApiError(errorMessage(data, response.status), response.status);
+  }
+  return data;
 }
 
 function textLength(value) {
   return Array.from(value).length;
 }
 
-// 검증 실패 시 오류 메시지, 통과 시 null을 반환한다.
+// 검증 실패 시 오류 메시지, 통과 시 null을 반환한다. 서버도 같은 규칙으로 다시 검증한다.
 function validateTitle(title) {
   const length = textLength(title);
   if (length === 0) {
@@ -98,7 +141,7 @@ function validateTaskInput(input) {
   );
 }
 
-// 입력값을 저장 형식으로 정리한다. 빈 마감일은 null이다.
+// 입력값을 API 요청 형식으로 정리한다. 빈 마감일은 null이다.
 function readTaskInput(title, description, priority, dueDate) {
   return {
     title: title.trim(),
@@ -108,86 +151,72 @@ function readTaskInput(title, description, priority, dueDate) {
   };
 }
 
-function isValidStatus(status) {
-  return STATUSES.some((item) => item.value === status);
-}
-
 function isValidPriority(priority) {
   return PRIORITIES.some((item) => item.value === priority);
 }
 
 function labelOf(list, value) {
-  return list.find((item) => item.value === value).label;
-}
-
-function isValidTask(task) {
-  return (
-    task !== null &&
-    typeof task === "object" &&
-    typeof task.id === "string" &&
-    typeof task.title === "string" &&
-    (task.status === undefined || isValidStatus(task.status)) &&
-    (task.description === undefined || typeof task.description === "string") &&
-    (task.priority === undefined || isValidPriority(task.priority)) &&
-    (task.due_date === undefined || task.due_date === null || isValidDate(task.due_date))
-  );
-}
-
-function withDefault(value, fallback) {
-  return value === undefined ? fallback : value;
-}
-
-// 저장값이 없으면 빈 목록, 읽을 수 없거나 형식이 다르면 예외를 던진다.
-// 이전 단계에서 저장한 항목에 없는 필드는 PRD 기본값으로 채운다.
-function loadTasks() {
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (raw === null) {
-    return [];
-  }
-  const data = JSON.parse(raw);
-  if (!Array.isArray(data) || !data.every(isValidTask)) {
-    throw new Error("저장값 형식이 올바르지 않습니다.");
-  }
-  return data.map((task) => ({
-    ...task,
-    status: withDefault(task.status, DEFAULT_STATUS),
-    description: withDefault(task.description, ""),
-    priority: withDefault(task.priority, DEFAULT_PRIORITY),
-    due_date: withDefault(task.due_date, null),
-  }));
-}
-
-function saveTasks() {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-}
-
-// 목록을 바꾸고 저장한다. 저장에 실패하면 바꾸기 전 목록으로 되돌린다.
-function applyChange(change) {
-  const snapshot = tasks.map((task) => ({ ...task }));
-  change();
-  try {
-    saveTasks();
-  } catch (saveError) {
-    tasks.splice(0, tasks.length, ...snapshot);
-    formError.textContent = `저장하지 못했습니다. (${saveError.message})`;
-    return false;
-  }
-  formError.textContent = "";
-  return true;
+  const found = list.find((item) => item.value === value);
+  return found ? found.label : value;
 }
 
 function findTask(id) {
   return tasks.find((task) => task.id === id);
 }
 
-function blockStorage(reason) {
-  storageBlocked = true;
-  for (const control of [titleInput, descriptionInput, priorityInput, dueInput, submitButton]) {
-    control.disabled = true;
+function hasFilters() {
+  return filters.query.trim() !== "" || filters.status !== "" || filters.priority !== "";
+}
+
+function listPath() {
+  const params = new URLSearchParams();
+  const query = filters.query.trim();
+  if (query !== "") {
+    params.set("q", query);
   }
-  storageError.textContent =
-    `저장된 데이터(${STORAGE_KEY})를 읽을 수 없어 등록을 중지했습니다. ` +
-    `기존 값은 변경하지 않았습니다. (${reason})`;
+  if (filters.status !== "") {
+    params.set("status", filters.status);
+  }
+  if (filters.priority !== "") {
+    params.set("priority", filters.priority);
+  }
+  const queryString = params.toString();
+  return queryString === "" ? "/tasks" : `/tasks?${queryString}`;
+}
+
+// API에서 현재 검색·필터 조건의 목록을 다시 받아 화면을 그린다.
+async function loadTasks() {
+  const requestId = ++listRequestId;
+  try {
+    const data = await request("GET", listPath());
+    if (requestId !== listRequestId) {
+      return;
+    }
+    tasks = data;
+    loadFailed = false;
+    apiError.textContent = "";
+  } catch (error) {
+    if (requestId !== listRequestId) {
+      return;
+    }
+    loadFailed = true;
+    apiError.textContent = `목록을 불러오지 못했습니다. ${error.message}`;
+  }
+  render();
+}
+
+// 변경 요청을 보내고 결과와 관계없이 목록을 다시 받는다. 실패하면 오류를 표시한다.
+async function runAction(action) {
+  let message = "";
+  try {
+    await action();
+  } catch (error) {
+    message = error.message;
+  }
+  await loadTasks();
+  if (message) {
+    apiError.textContent = message;
+  }
 }
 
 // 로컬 달력 기준 오늘 날짜(YYYY-MM-DD).
@@ -202,28 +231,8 @@ function isOverdue(task, today) {
   return task.due_date !== null && task.status !== "DONE" && task.due_date < today;
 }
 
-function matchesFilters(task) {
-  const query = filters.query.trim().toLowerCase();
-  return (
-    (query === "" || task.title.toLowerCase().includes(query)) &&
-    (filters.status === "" || task.status === filters.status) &&
-    (filters.priority === "" || task.priority === filters.priority)
-  );
-}
-
-function hasFilters() {
-  return filters.query.trim() !== "" || filters.status !== "" || filters.priority !== "";
-}
-
 function changeStatus(id, status) {
-  const task = findTask(id);
-  if (!task || !isValidStatus(status)) {
-    return;
-  }
-  applyChange(() => {
-    task.status = status;
-  });
-  render();
+  return runAction(() => request("PATCH", `/tasks/${id}`, { status }));
 }
 
 function startEdit(id) {
@@ -239,44 +248,51 @@ function cancelEdit() {
   render();
 }
 
-function saveEdit(id, input) {
-  const task = findTask(id);
-  if (!task) {
-    cancelEdit();
-    return;
-  }
+function showEditError(message) {
+  editError = message;
+  focusEditForm = true;
+  render();
+}
+
+async function saveEdit(id, input) {
   const error = validateTaskInput(input);
   if (error) {
-    editError = error;
-    focusEditForm = true;
-    render();
+    showEditError(error);
     return;
   }
-  if (applyChange(() => {
-    Object.assign(task, input);
-  })) {
-    editingId = null;
-    editError = "";
+  try {
+    await request("PATCH", `/tasks/${id}`, input);
+  } catch (requestError) {
+    if (requestError.status === 404) {
+      // 이미 삭제된 항목이면 수정 폼을 닫고 최신 목록을 보여 준다.
+      editingId = null;
+      editError = "";
+      await loadTasks();
+      apiError.textContent = requestError.message;
+      return;
+    }
+    // 입력 오류나 연결 실패는 입력한 내용을 유지한 채 오류를 보여 준다.
+    showEditError(requestError.message);
+    return;
   }
-  render();
+  editingId = null;
+  editError = "";
+  await loadTasks();
 }
 
 function deleteTask(id) {
   const task = findTask(id);
   if (!task) {
-    return;
+    return Promise.resolve();
   }
   if (!window.confirm(`"${task.title}" 할 일을 삭제할까요?`)) {
-    return;
+    return Promise.resolve();
   }
-  applyChange(() => {
-    tasks.splice(tasks.indexOf(task), 1);
-  });
-  if (editingId === id && !findTask(id)) {
+  if (editingId === id) {
     editingId = null;
     editError = "";
   }
-  render();
+  return runAction(() => request("DELETE", `/tasks/${id}`));
 }
 
 function createButton(label, onClick) {
@@ -367,7 +383,7 @@ function createBadge(text, className) {
 
 function createTaskItem(task, today) {
   const item = document.createElement("li");
-  item.dataset.id = task.id;
+  item.dataset.id = String(task.id);
   const classes = [];
   if (task.status === "DONE") {
     classes.push("done");
@@ -436,10 +452,9 @@ function createTaskItem(task, today) {
 function render() {
   taskList.replaceChildren();
   const today = todayString();
-  const visible = tasks.filter(matchesFilters);
   let focusTarget = null;
 
-  for (const task of visible) {
+  for (const task of tasks) {
     const created = createTaskItem(task, today);
     taskList.appendChild(created.item);
     if (created.focusTarget) {
@@ -447,12 +462,15 @@ function render() {
     }
   }
 
-  taskCount.textContent = hasFilters()
-    ? `(${visible.length} / 전체 ${tasks.length})`
-    : `(${tasks.length})`;
-  emptyMessage.hidden = visible.length > 0;
-  emptyMessage.textContent =
-    tasks.length === 0 ? "등록된 할 일이 없습니다." : "조건에 맞는 할 일이 없습니다.";
+  taskCount.textContent = hasFilters() ? `(검색 결과 ${tasks.length})` : `(${tasks.length})`;
+  emptyMessage.hidden = tasks.length > 0;
+  if (loadFailed && tasks.length === 0) {
+    emptyMessage.textContent = "목록을 불러오지 못했습니다.";
+  } else {
+    emptyMessage.textContent = hasFilters()
+      ? "조건에 맞는 할 일이 없습니다."
+      : "등록된 할 일이 없습니다.";
+  }
   if (focusTarget && focusEditForm) {
     focusTarget.focus();
   }
@@ -466,9 +484,9 @@ function resetForm() {
   dueInput.value = "";
 }
 
-form.addEventListener("submit", (event) => {
+form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (storageBlocked) {
+  if (submitButton.disabled) {
     return;
   }
 
@@ -485,42 +503,36 @@ form.addEventListener("submit", (event) => {
     return;
   }
 
-  const added = applyChange(() => {
-    tasks.push({
-      id: createId(),
-      title: input.title,
-      description: input.description,
-      status: DEFAULT_STATUS,
-      priority: input.priority,
-      due_date: input.due_date,
-      created_at: new Date().toISOString(),
-    });
-  });
-  if (!added) {
+  // 응답을 기다리는 동안 같은 할 일이 두 번 등록되지 않도록 버튼을 잠근다.
+  submitButton.disabled = true;
+  try {
+    await request("POST", "/tasks", input);
+  } catch (requestError) {
+    formError.textContent = `등록하지 못했습니다. ${requestError.message}`;
     return;
+  } finally {
+    submitButton.disabled = false;
   }
 
+  formError.textContent = "";
   resetForm();
   titleInput.focus();
-  render();
+  await loadTasks();
 });
 
 searchInput.addEventListener("input", () => {
   filters.query = searchInput.value;
-  render();
+  // 글자를 입력할 때마다 요청하지 않도록 입력이 멈춘 뒤 조회한다.
+  window.clearTimeout(searchTimer);
+  searchTimer = window.setTimeout(loadTasks, SEARCH_DELAY_MS);
 });
 statusFilter.addEventListener("change", () => {
   filters.status = statusFilter.value;
-  render();
+  loadTasks();
 });
 priorityFilter.addEventListener("change", () => {
   filters.priority = priorityFilter.value;
-  render();
+  loadTasks();
 });
 
-try {
-  tasks.push(...loadTasks());
-} catch (loadError) {
-  blockStorage(loadError.message);
-}
-render();
+loadTasks();

@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException, status
+from fastapi.staticfiles import StaticFiles
 
 from .schemas import Priority, Status, Task, TaskCreate, TaskUpdate
 from .store import MemoryTaskStore
@@ -7,6 +10,7 @@ app = FastAPI(title="Task Flow API")
 store = MemoryTaskStore()
 
 TASK_NOT_FOUND = "할 일을 찾을 수 없습니다."
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
 
 @app.get("/api/health")
@@ -45,3 +49,7 @@ def delete_task(task_id: int) -> None:
     """할 일을 삭제한다."""
     if not store.delete(task_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=TASK_NOT_FOUND)
+
+
+# 화면 파일을 같은 주소에서 제공한다. API 경로가 먼저 처리되도록 마지막에 연결한다.
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
