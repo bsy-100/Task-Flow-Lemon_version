@@ -2,7 +2,7 @@ import re
 from datetime import date, datetime
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 TITLE_MAX_LENGTH = 100
 DESCRIPTION_MAX_LENGTH = 2000
@@ -21,6 +21,25 @@ class Priority(str, Enum):
     LOW = "LOW"
 
 
+def check_due_date_format(value: object) -> object:
+    # "YYYY-MM-DD" 문자열만 허용하고 숫자·일시 문자열은 날짜로 변환하지 않는다.
+    # 실제 존재하는 날짜인지는 이후 date 변환에서 확인한다.
+    if value is None:
+        return None
+    if not isinstance(value, str) or not DATE_PATTERN.fullmatch(value):
+        raise ValueError("마감일은 YYYY-MM-DD 형식이어야 합니다.")
+    return value
+
+
+def check_title(value: str | None) -> str | None:
+    if value is None:
+        return None
+    title = value.strip()
+    if not 1 <= len(title) <= TITLE_MAX_LENGTH:
+        raise ValueError(f"제목은 앞뒤 공백 제거 후 1~{TITLE_MAX_LENGTH}자여야 합니다.")
+    return title
+
+
 class TaskCreate(BaseModel):
     """POST /api/tasks 요청 본문. 정의되지 않은 필드는 거절한다."""
 
@@ -31,26 +50,36 @@ class TaskCreate(BaseModel):
     priority: Priority = Priority.NORMAL
     due_date: date | None = None
 
-    @field_validator("due_date", mode="before")
-    @classmethod
-    def validate_due_date(cls, value: object) -> object:
-        # "YYYY-MM-DD" 문자열만 허용하고 숫자·일시 문자열은 날짜로 변환하지 않는다.
-        # 실제 존재하는 날짜인지는 이후 date 변환에서 확인한다.
-        if value is None:
-            return None
-        if not isinstance(value, str) or not DATE_PATTERN.fullmatch(value):
-            raise ValueError("마감일은 YYYY-MM-DD 형식이어야 합니다.")
-        return value
+    _check_due_date = field_validator("due_date", mode="before")(check_due_date_format)
+    _check_title = field_validator("title")(check_title)
 
-    @field_validator("title")
-    @classmethod
-    def validate_title(cls, value: str) -> str:
-        title = value.strip()
-        if not 1 <= len(title) <= TITLE_MAX_LENGTH:
-            raise ValueError(
-                f"제목은 앞뒤 공백 제거 후 1~{TITLE_MAX_LENGTH}자여야 합니다."
-            )
-        return title
+
+class TaskUpdate(BaseModel):
+    """PATCH /api/tasks/{id} 요청 본문. 보낸 필드만 수정한다."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str | None = None
+    description: str | None = Field(default=None, max_length=DESCRIPTION_MAX_LENGTH)
+    status: Status | None = None
+    priority: Priority | None = None
+    # null을 보내면 마감일을 지운다.
+    due_date: date | None = None
+
+    _check_due_date = field_validator("due_date", mode="before")(check_due_date_format)
+    _check_title = field_validator("title")(check_title)
+
+    @model_validator(mode="after")
+    def reject_null(self) -> "TaskUpdate":
+        # 생략은 허용하지만 due_date 외의 필드에 null을 보내면 거절한다.
+        for name in ("title", "description", "status", "priority"):
+            if name in self.model_fields_set and getattr(self, name) is None:
+                raise ValueError(f"{name}에는 null을 보낼 수 없습니다.")
+        return self
+
+    def changes(self) -> dict[str, object]:
+        """요청에 실제로 포함된 필드만 반환한다."""
+        return self.model_dump(exclude_unset=True)
 
 
 class Task(BaseModel):

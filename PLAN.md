@@ -39,8 +39,11 @@
   수정: due_date strict 검증이 "2026-10-20"까지 거절해 YYYY-MM-DD 형식 검사 후 날짜 변환하도록 변경.
   실행: 포트 8001에서 uvicorn 실행 후 urllib 스크립트로 확인. 26개 통과(기본값 201, 경계값 201, 위반 18종 422, GET id 순서, 재시작 후 빈 목록).
   /docs 화면에서 사용자 확인 정상(등록 201, 빈 제목 422, 등록 후 조회). 남은 오류 없음.
-- [ ] T07: PATCH·DELETE와 필터 구현.
+- [x] T07: PATCH·DELETE와 필터 구현.
   확인: 미전달 필드 유지, 없는 ID 404, 삭제 204.
+  기록(2026-10-13): backend/schemas.py TaskUpdate(보낸 필드만 수정, due_date만 null 허용), backend/store.py update·delete·필터, backend/main.py PATCH·DELETE와 q·status·priority 쿼리.
+  실행: 포트 8001에서 uvicorn 실행 후 urllib 스크립트로 확인. T07 41개 통과(부분 수정 시 나머지·다른 항목 유지, due_date null 삭제, PATCH 위반 14종 422, 없는 id 404, 삭제 204·재삭제 404, q·status·priority AND, 잘못된 필터 422). T06 회귀 25개 통과.
+  남은 오류 없음.
 - [ ] T08: 프런트엔드 저장 처리를 API 호출로 교체.
   확인: 화면과 curl 목록이 같음. API 중지 시 오류 표시.
 ## 4장: DB
