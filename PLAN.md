@@ -89,8 +89,13 @@
   기록(2026-10-14): API-SPEC.md에 인증 장(사용자·세션·쿠키 규칙, signup·login·logout·me, 401·409 코드, /api/tasks 로그인 필수·타인 id 404) 추가. requirements.txt에 argon2-cffi==25.1.0 기록(PyPI 최신 25.1.0 확인, 아직 설치하지 않음 — T17에서 설치).
   확인: PRD F10~F14 항목(사용자명·비밀번호 규칙, 7일 세션, HttpOnly 쿠키, 로그인 실패 동일 응답, 타인 id 404, 미로그인 401)을 계약과 대조해 일치함. 코드 변경·실행 없음(문서 단계).
   결정: 로그인 시 기존 세션은 교체, 로그아웃은 멱등 204, 만료는 7일 고정, 가입은 쿠키를 발급하지 않음(가입 후 별도 로그인).
-- [ ] T16: users·sessions 테이블 모델 추가, tasks.user_id(FK) 추가, init_db 갱신.
+- [x] T16: users·sessions 테이블 모델 추가, tasks.user_id(FK) 추가, init_db 갱신.
   확인: 테이블 구조 조회. 기존 tasks 행은 사용자 승인에 따라 정리 가능하나 삭제 전 대상 행을 먼저 보여 준다.
+  기록(2026-10-14): backend/models.py에 UserRow(username, username_key 소문자 유일값, password_hash)·SessionRow(token_hash 해시만, expires_at)·TaskRow.user_id(FK, ON DELETE CASCADE) 추가. backend/init_db.py가 없는 테이블만 만들고 tasks.user_id를 추가(기존 행이 있으면 --delete-existing-tasks 없이는 중단).
+  실행: .venv/bin/python -m backend.init_db (옵션 없이: 기존 4행 때문에 중단·행 유지 확인) → --delete-existing-tasks → 다시 실행(모두 변경 없음).
+  삭제: 사용자 승인에 따라 T14 테스트 행 4개(id 6~9: NICE, TO, MEET, YOU)만 삭제. 삭제 전 목록을 확인함.
+  결과: SHOW CREATE TABLE로 users·sessions·tasks(user_id NOT NULL, 인덱스, FK) 확인. 롤백 트랜잭션에서 없는 user_id로 task 등록 거절, 대소문자만 다른 사용자명 거절, 사용자 삭제 시 task·session 연쇄 삭제 확인(롤백 후 0행).
+  남은 문제: tasks.user_id가 NOT NULL이라 아직 user_id를 넣지 않는 현재 /api/tasks 등록(POST)은 실패한다(T19에서 해결). /opt/task-flow의 배포본과 http://127.0.0.1 화면도 T21 전까지 등록이 안 된다. 같은 DB를 쓰므로 지금 이미 영향이 있다.
 - [ ] T17: POST /api/auth/signup 구현(argon2 해시, 사용자명 검증, 중복 409).
   확인: DB에 해시만 저장, 중복·형식 위반·비밀번호 길이 위반 거절, 응답·로그에 비밀번호 미노출.
 - [ ] T18: POST /api/auth/login·logout, GET /api/auth/me 구현(DB 세션, HttpOnly 쿠키).
