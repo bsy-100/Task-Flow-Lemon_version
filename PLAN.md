@@ -122,8 +122,13 @@
   실행: Node DOM 스텁(index.html의 실제 id 사용)이 app.js를 포트 8001 실제 서버에 연결해 41개 전부 통과. 시작 화면·가입 검증 4종(요청 없음)·가입 성공·중복 가입 오류·로그인 실패(없는 사용자 동일 메시지)·로그인·등록 3개·XSS 글자 표시·지연 표시·상태 변경·삭제 취소/삭제·필터, 로그아웃(화면·쿠키·초기화·대기 중 검색 요청 취소), 사용자 2에게 사용자 1 목록 안 보임, 새로고침 후 세션 유지, 세션 만료 시 로그인 화면 복귀·재로그인, API 중지 시 연결 오류 표시. index.html 태그 균형 확인. 서버 로그에 비밀번호 0건. 테스트 사용자(chk_)는 삭제해 users·sessions·tasks 0행.
   브라우저 확인: 저장소 밖 개발 서버(스크래치패드 dev_app.py)로 확인. 8001은 브라우저 요청이 서버에 닿지 않아(서버 로그에 요청 없음, 원인 미확인) 8002(0.0.0.0)로 다시 띄워 사용자가 가입→로그인→등록→로그아웃→다른 계정 로그인 흐름을 확인, 정상. 남은 오류 없음.
   참고: 브라우저로 만든 사용자 계정·할 일이 DB에 남아 있음(삭제하지 않음).
-- [ ] T21: App·Web 서버에 반영(/opt/task-flow 복사, 의존성 설치, init_db, systemd 재시작, Nginx 쿠키·헤더 전달 확인).
+- [x] T21: App·Web 서버에 반영(/opt/task-flow 복사, 의존성 설치, init_db, systemd 재시작, Nginx 쿠키·헤더 전달 확인).
   확인: http://127.0.0.1 에서 두 사용자 시나리오 전체, App 재시작 후 로그인 유지.
+  기록(2026-10-14): 사용자가 sudo bash deploy/setup-app.sh, deploy/setup-web.sh 실행(배포본 backend·frontend가 저장소와 동일함을 diff로 확인). 변경 파일 없음(Nginx 설정은 쿠키를 기본으로 전달하므로 수정 불필요). DB 구조는 T16에서 이미 적용.
+  확인(Nginx 경유 http://127.0.0.1): API 시나리오 44개·화면(DOM 스텁) 41개 전부 통과, /·app.js·styles.css 200, 없는 경로 404, 로그인 쿠키가 Nginx를 거쳐도 HttpOnly; Max-Age=604800; Path=/; SameSite=lax, App·Nginx 로그에 비밀번호 0건. 기존 사용자 데이터는 건드리지 않고 chk_ 테스트 계정만 삭제.
+  재시작 확인: 사용자가 sudo systemctl restart task-flow-api.service 실행(13:45:09). 재시작 전에 만든 세션으로 /api/auth/me 200과 /api/tasks 조회가 재시작 후에도 유지, 로그아웃 204 후 401. 확인용 계정은 삭제.
+  브라우저 확인: 사용자가 http://127.0.0.1 확인 후 '진행'으로 응답함(확인 결과를 별도 문장으로 받지는 않았고, 이상 보고 없음).
+  남은 문제: 서버 재부팅 후 자동 기동은 T14부터 계속 미확인. 로그인 시도 횟수 제한 없음, 만료 세션은 해당 사용자의 다음 로그인 때만 정리됨. HTTPS가 아니므로 COOKIE_SECURE는 false(HTTPS 배포 시 true).
 ## 실행 기준
 T01~T04: python3 -m http.server 5500 --bind 127.0.0.1 --directory frontend
 T05~T11: 가상환경에서 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
