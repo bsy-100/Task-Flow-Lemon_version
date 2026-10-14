@@ -96,8 +96,13 @@
   삭제: 사용자 승인에 따라 T14 테스트 행 4개(id 6~9: NICE, TO, MEET, YOU)만 삭제. 삭제 전 목록을 확인함.
   결과: SHOW CREATE TABLE로 users·sessions·tasks(user_id NOT NULL, 인덱스, FK) 확인. 롤백 트랜잭션에서 없는 user_id로 task 등록 거절, 대소문자만 다른 사용자명 거절, 사용자 삭제 시 task·session 연쇄 삭제 확인(롤백 후 0행).
   남은 문제: tasks.user_id가 NOT NULL이라 아직 user_id를 넣지 않는 현재 /api/tasks 등록(POST)은 실패한다(T19에서 해결). /opt/task-flow의 배포본과 http://127.0.0.1 화면도 T21 전까지 등록이 안 된다. 같은 DB를 쓰므로 지금 이미 영향이 있다.
-- [ ] T17: POST /api/auth/signup 구현(argon2 해시, 사용자명 검증, 중복 409).
+- [x] T17: POST /api/auth/signup 구현(argon2 해시, 사용자명 검증, 중복 409).
   확인: DB에 해시만 저장, 중복·형식 위반·비밀번호 길이 위반 거절, 응답·로그에 비밀번호 미노출.
+  기록(2026-10-14): backend/auth.py(argon2 해시), backend/user_store.py(DbUserStore), backend/schemas.py(SignupRequest·User), backend/main.py에 POST /api/auth/signup과 인증 경로 422 응답에서 입력값(input)을 빼는 핸들러 추가. .venv에 requirements.txt 설치(Python 3.14.4, argon2-cffi 25.1.0).
+  실행: 포트 8001 uvicorn + urllib 스크립트. 48개 중 47개 통과(가입 201·응답은 id·username만·쿠키 미발급, 대소문자만 다른 이름·같은 이름 409, 사용자명 3·21자·공백·개행·한글·하이픈 422와 4·20자 허용, 비밀번호 7·73자·한글 25자(75바이트) 422와 8·72자·한글 24자·앞뒤 공백 허용, 추가 필드·누락·타입 오류·깨진 JSON 422). 실패 1건은 스크립트 오탐(응답의 "Extra inputs" 문구가 "input" 검사에 걸림, 입력값 자체는 응답에 없음). /api/health·GET /api/tasks·tasks 검증 422 형식 회귀 정상.
+  결과: DB에는 $argon2id$ 해시(97자)만 저장, 평문 포함 행 0, 서버 로그에 비밀번호 0건. 422 응답에 비밀번호 미포함.
+  정리: 테스트 사용자(t17 접두사)만 삭제해 users 0행. AUTO_INCREMENT는 계속 증가.
+  남은 문제: 같은 이름 동시 가입은 유일 제약+409 처리로 대비했으나 동시 요청 테스트는 하지 않음. POST /api/tasks는 T19 전까지 계속 실패.
 - [ ] T18: POST /api/auth/login·logout, GET /api/auth/me 구현(DB 세션, HttpOnly 쿠키).
   확인: 로그인 후 /me 200, 로그아웃 후 같은 쿠키 401, 틀린 비밀번호와 없는 사용자명이 같은 응답, API 재시작 후 세션 유지, DB에 토큰 원문 없음.
 - [ ] T19: /api/tasks 전체를 로그인 필수로 바꾸고 모든 조회·수정·삭제에 user_id 조건 적용.

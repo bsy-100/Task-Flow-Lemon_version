@@ -1,18 +1,33 @@
 import logging
 
 from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 
-from .schemas import Priority, Status, Task, TaskCreate, TaskUpdate
+from .auth import hash_password
+from .schemas import Priority, SignupRequest, Status, Task, TaskCreate, TaskUpdate, User
 from .store import DbTaskStore
+from .user_store import DbUserStore
 
 app = FastAPI(title="Task Flow API")
 store = DbTaskStore()
+user_store = DbUserStore()
 logger = logging.getLogger(__name__)
 
 TASK_NOT_FOUND = "할 일을 찾을 수 없습니다."
+USERNAME_TAKEN = "이미 사용 중인 사용자명입니다."
 DATABASE_ERROR = "DB에 연결할 수 없거나 처리 중 오류가 발생했습니다."
+
+
+@app.exception_handler(RequestValidationError)
+def handle_validation_error(request: Request, error: RequestValidationError) -> JSONResponse:
+    """422 응답. 인증 요청은 입력값(비밀번호)이 응답에 되돌아가지 않도록 input을 뺀다."""
+    errors = error.errors()
+    if request.url.path.startswith("/api/auth/"):
+        errors = [{key: value for key, value in item.items() if key not in ("input", "ctx")} for item in errors]
+    return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, content={"detail": jsonable_encoder(errors)})
 
 
 @app.exception_handler(SQLAlchemyError)
@@ -26,6 +41,15 @@ def handle_database_error(request: Request, error: SQLAlchemyError) -> JSONRespo
 def health() -> dict[str, str]:
     """API 서버가 요청을 처리할 수 있는지 확인한다."""
     return {"status": "ok"}
+
+
+@app.post("/api/auth/signup", status_code=status.HTTP_201_CREATED)
+def signup(data: SignupRequest) -> User:
+    """회원가입. 로그인은 하지 않으며 비밀번호는 argon2 해시로만 저장한다."""
+    user = user_store.create(data.username, hash_password(data.password))
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=USERNAME_TAKEN)
+    return user
 
 
 @app.get("/api/tasks")
