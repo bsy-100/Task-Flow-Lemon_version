@@ -76,8 +76,13 @@
   서비스 이름: task-flow-api.service(예전 task-flow.service는 제거). 시작: sudo systemctl start task-flow-api.service
   확인: systemctl is-active=active, is-enabled=enabled, 프로세스 사용자 taskflow, /opt/task-flow/.env 권한 600(taskflow), /api/health {"status":"ok"}, /api/tasks 200.
   서비스가 0.0.0.0:8000이므로 실제 서버에서는 8000번을 Web 서버만 허용. 서버 재부팅 후 자동 기동은 미확인.
-- [ ] T14: Web 서버 Nginx와 정적 파일·/api 프록시 구성.
+- [x] T14: Web 서버 Nginx와 정적 파일·/api 프록시 구성.
   확인: Web 주소로 등록, DB 저장, App 재시작 후 유지.
+  기록: 변경 파일 deploy/nginx-task-flow.conf, deploy/setup-web.sh(추가). 80번 포트, 화면은 /opt/task-flow/frontend 정적 제공, /api/는 127.0.0.1:8000 프록시, 기본 사이트 연결 해제. 같은 WSL 안 시뮬레이션.
+  실행 명령: sudo bash deploy/setup-web.sh (사용자가 직접 실행), sudo systemctl restart task-flow-api.service (사용자가 직접 실행).
+  확인: nginx active, / 200, /api/health ok, /api/tasks 200. Nginx 경유 POST로 등록(id=3) → App 재시작(프로세스 가동 44초로 확인) 후 같은 행이 조회됨 → 테스트 행 삭제.
+  기록(2026-10-14): http://127.0.0.1 브라우저 화면 렌더링·동작을 사용자가 확인, 정상.
+  미확인: 서버 재부팅 후 자동 기동. 남은 문제: main.py가 /에 frontend를 항상 mount(Nginx 뒤에서는 동작에 영향 없음, 미수정).
 ## 실행 기준
 T01~T04: python3 -m http.server 5500 --bind 127.0.0.1 --directory frontend
 T05~T11: 가상환경에서 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
