@@ -84,8 +84,11 @@
   기록(2026-10-14): http://127.0.0.1 브라우저 화면 렌더링·동작을 사용자가 확인, 정상.
   미확인: 서버 재부팅 후 자동 기동. 남은 문제: main.py가 /에 frontend를 항상 mount(Nginx 뒤에서는 동작에 영향 없음, 미수정).
 ## 6장: 다중 사용자(회원가입·로그인)
-- [ ] T15: API-SPEC.md에 인증 계약 작성(POST /api/auth/signup·login·logout, GET /api/auth/me, 401·409·422, 쿠키 속성, 세션 7일). argon2-cffi를 requirements.txt에 기록.
+- [x] T15: API-SPEC.md에 인증 계약 작성(POST /api/auth/signup·login·logout, GET /api/auth/me, 401·409·422, 쿠키 속성, 세션 7일). argon2-cffi를 requirements.txt에 기록.
   확인: 문서 검토. PRD F10~F14와 계약이 일치한다.
+  기록(2026-10-14): API-SPEC.md에 인증 장(사용자·세션·쿠키 규칙, signup·login·logout·me, 401·409 코드, /api/tasks 로그인 필수·타인 id 404) 추가. requirements.txt에 argon2-cffi==25.1.0 기록(PyPI 최신 25.1.0 확인, 아직 설치하지 않음 — T17에서 설치).
+  확인: PRD F10~F14 항목(사용자명·비밀번호 규칙, 7일 세션, HttpOnly 쿠키, 로그인 실패 동일 응답, 타인 id 404, 미로그인 401)을 계약과 대조해 일치함. 코드 변경·실행 없음(문서 단계).
+  결정: 로그인 시 기존 세션은 교체, 로그아웃은 멱등 204, 만료는 7일 고정, 가입은 쿠키를 발급하지 않음(가입 후 별도 로그인).
 - [ ] T16: users·sessions 테이블 모델 추가, tasks.user_id(FK) 추가, init_db 갱신.
   확인: 테이블 구조 조회. 기존 tasks 행은 사용자 승인에 따라 정리 가능하나 삭제 전 대상 행을 먼저 보여 준다.
 - [ ] T17: POST /api/auth/signup 구현(argon2 해시, 사용자명 검증, 중복 409).
