@@ -121,6 +121,15 @@ class SignupRequest(BaseModel):
         return value
 
 
+class LoginRequest(BaseModel):
+    """POST /api/auth/login 요청 본문. 형식 검사는 하지 않고(틀리면 401) 지나치게 긴 값만 거절한다."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    username: str = Field(max_length=200)
+    password: str = Field(max_length=200)
+
+
 class User(BaseModel):
     """API 응답의 사용자. 비밀번호와 해시는 포함하지 않는다."""
 

@@ -103,8 +103,13 @@
   결과: DB에는 $argon2id$ 해시(97자)만 저장, 평문 포함 행 0, 서버 로그에 비밀번호 0건. 422 응답에 비밀번호 미포함.
   정리: 테스트 사용자(t17 접두사)만 삭제해 users 0행. AUTO_INCREMENT는 계속 증가.
   남은 문제: 같은 이름 동시 가입은 유일 제약+409 처리로 대비했으나 동시 요청 테스트는 하지 않음. POST /api/tasks는 T19 전까지 계속 실패.
-- [ ] T18: POST /api/auth/login·logout, GET /api/auth/me 구현(DB 세션, HttpOnly 쿠키).
+- [x] T18: POST /api/auth/login·logout, GET /api/auth/me 구현(DB 세션, HttpOnly 쿠키).
   확인: 로그인 후 /me 200, 로그아웃 후 같은 쿠키 401, 틀린 비밀번호와 없는 사용자명이 같은 응답, API 재시작 후 세션 유지, DB에 토큰 원문 없음.
+  기록(2026-10-14): backend/auth.py(비밀번호 검증·토큰 생성·SHA-256 해시·Secure 설정 읽기), backend/user_store.py(로그인 조회·세션 생성·삭제·조회), backend/schemas.py(LoginRequest), backend/main.py에 POST /api/auth/login·logout, GET /api/auth/me와 current_user 의존성(T19에서 사용) 추가. .env.example에 COOKIE_SECURE(가짜 값 false) 추가.
+  동작: 쿠키 session(HttpOnly, SameSite=Lax, Path=/, Max-Age=604800, COOKIE_SECURE=true일 때 Secure). 재로그인 시 이전 세션 삭제, 로그인 시 해당 사용자의 만료 세션 정리. 없는 사용자명도 가짜 해시를 검증해 응답 시간 차이를 줄임.
+  실행: 포트 8001 uvicorn 2회(COOKIE_SECURE=false, 재시작 후 true) + urllib 스크립트. 33개 전부 통과: 쿠키 없이 me 401, 틀린 비밀번호·없는 사용자·형식 틀린 사용자명이 동일한 401 본문(쿠키 미발급), 로그인 422(추가 필드·누락·201자·숫자)에 입력값 미포함, 대소문자 무시 로그인 200과 쿠키 속성, DB에 해시만 저장(토큰 원문 없음·만료 168시간), 사용자 A·B 세션 분리, 재로그인 시 이전 토큰 401, 가짜·5000자 쿠키 401, 만료 세션 401, API 재시작 후 세션 유지, 로그아웃 204·쿠키 삭제(Max-Age=0)·같은 쿠키 401·DB 행 삭제, 반복·쿠키 없는 로그아웃 204, Secure 설정 시 Secure 속성, health·GET /api/tasks 회귀. 서버 로그에 비밀번호·토큰 원문 0건.
+  정리: 테스트 사용자(chk_ 접두사 2명, 세션은 연쇄 삭제)만 삭제해 users·sessions 0행.
+  남은 문제: 로그인 시도 횟수 제한은 없음(PRD 범위 밖). 만료 세션은 로그인 때만 정리하므로 로그인하지 않는 사용자의 만료 행은 남음. POST /api/tasks는 T19 전까지 계속 실패.
 - [ ] T19: /api/tasks 전체를 로그인 필수로 바꾸고 모든 조회·수정·삭제에 user_id 조건 적용.
   확인: 미로그인 401, 사용자 A·B 목록 분리, B가 A의 id를 PATCH·DELETE하면 404. 기존 T06~T11 동작(검증·필터)은 회귀 확인.
 - [ ] T20: 프런트엔드 회원가입·로그인 폼, 사용자명 표시, 로그아웃 버튼. 401이면 로그인 화면으로 이동.
