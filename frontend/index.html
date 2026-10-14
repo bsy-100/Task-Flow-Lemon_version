@@ -10,6 +10,40 @@
   <main class="container">
     <h1>Task Flow</h1>
 
+    <section id="auth-section" class="auth-section" hidden aria-labelledby="auth-heading">
+      <h2 id="auth-heading">로그인</h2>
+      <p id="auth-notice" class="auth-notice" role="status"></p>
+      <p id="auth-error" class="form-error" role="alert"></p>
+
+      <form id="login-form" class="auth-form" novalidate>
+        <label for="login-username">사용자명</label>
+        <input id="login-username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false">
+        <label for="login-password">비밀번호</label>
+        <input id="login-password" type="password" autocomplete="current-password">
+        <button id="login-button" type="submit">로그인</button>
+      </form>
+
+      <form id="signup-form" class="auth-form" novalidate hidden>
+        <label for="signup-username">사용자명 (영문·숫자·_ 4~20자)</label>
+        <input id="signup-username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false">
+        <label for="signup-password">비밀번호 (8~72자)</label>
+        <input id="signup-password" type="password" autocomplete="new-password">
+        <label for="signup-password-confirm">비밀번호 확인</label>
+        <input id="signup-password-confirm" type="password" autocomplete="new-password">
+        <button id="signup-button" type="submit">회원가입</button>
+      </form>
+
+      <p class="auth-switch">
+        <button id="auth-switch-button" type="button" class="link-button">계정이 없으면 회원가입</button>
+      </p>
+    </section>
+
+    <div id="app-section" hidden>
+    <div class="user-bar">
+      <span>사용자: <strong id="user-name"></strong></span>
+      <button id="logout-button" type="button">로그아웃</button>
+    </div>
+
     <form id="task-form" class="task-form" novalidate>
       <div class="form-row">
         <label for="task-title" class="sr-only">할 일 제목</label>
@@ -57,6 +91,7 @@
       <p id="empty-message" class="empty-message">등록된 할 일이 없습니다.</p>
       <ul id="task-list" class="task-list"></ul>
     </section>
+    </div>
   </main>
 
   <script src="app.js"></script>
