@@ -83,6 +83,21 @@
   확인: nginx active, / 200, /api/health ok, /api/tasks 200. Nginx 경유 POST로 등록(id=3) → App 재시작(프로세스 가동 44초로 확인) 후 같은 행이 조회됨 → 테스트 행 삭제.
   기록(2026-10-14): http://127.0.0.1 브라우저 화면 렌더링·동작을 사용자가 확인, 정상.
   미확인: 서버 재부팅 후 자동 기동. 남은 문제: main.py가 /에 frontend를 항상 mount(Nginx 뒤에서는 동작에 영향 없음, 미수정).
+## 6장: 다중 사용자(회원가입·로그인)
+- [ ] T15: API-SPEC.md에 인증 계약 작성(POST /api/auth/signup·login·logout, GET /api/auth/me, 401·409·422, 쿠키 속성, 세션 7일). argon2-cffi를 requirements.txt에 기록.
+  확인: 문서 검토. PRD F10~F14와 계약이 일치한다.
+- [ ] T16: users·sessions 테이블 모델 추가, tasks.user_id(FK) 추가, init_db 갱신.
+  확인: 테이블 구조 조회. 기존 tasks 행은 사용자 승인에 따라 정리 가능하나 삭제 전 대상 행을 먼저 보여 준다.
+- [ ] T17: POST /api/auth/signup 구현(argon2 해시, 사용자명 검증, 중복 409).
+  확인: DB에 해시만 저장, 중복·형식 위반·비밀번호 길이 위반 거절, 응답·로그에 비밀번호 미노출.
+- [ ] T18: POST /api/auth/login·logout, GET /api/auth/me 구현(DB 세션, HttpOnly 쿠키).
+  확인: 로그인 후 /me 200, 로그아웃 후 같은 쿠키 401, 틀린 비밀번호와 없는 사용자명이 같은 응답, API 재시작 후 세션 유지, DB에 토큰 원문 없음.
+- [ ] T19: /api/tasks 전체를 로그인 필수로 바꾸고 모든 조회·수정·삭제에 user_id 조건 적용.
+  확인: 미로그인 401, 사용자 A·B 목록 분리, B가 A의 id를 PATCH·DELETE하면 404. 기존 T06~T11 동작(검증·필터)은 회귀 확인.
+- [ ] T20: 프런트엔드 회원가입·로그인 폼, 사용자명 표시, 로그아웃 버튼. 401이면 로그인 화면으로 이동.
+  확인: 가입→로그인→등록→로그아웃→다른 계정 로그인 시 목록이 다름. 사용자명·입력은 글자로 표시.
+- [ ] T21: App·Web 서버에 반영(/opt/task-flow 복사, 의존성 설치, init_db, systemd 재시작, Nginx 쿠키·헤더 전달 확인).
+  확인: http://127.0.0.1 에서 두 사용자 시나리오 전체, App 재시작 후 로그인 유지.
 ## 실행 기준
 T01~T04: python3 -m http.server 5500 --bind 127.0.0.1 --directory frontend
 T05~T11: 가상환경에서 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
