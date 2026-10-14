@@ -1,38 +1,433 @@
+/* Task Flow 화면 스타일: 레몬 테마.
+   레몬 옐로를 포인트로 쓰고, 노란 배경 위에는 항상 진한 잉크색 글자를 쓴다(흰 글자 금지: 대비 부족).
+   그라데이션·그림자·애니메이션은 쓰지 않고 모서리는 작게 유지한다. */
+:root {
+  --lemon: #fff1a6;
+  --lemon-strong: #ffe46e;
+  --lemon-soft: #fff8d0;
+  --lemon-tint: #fffcec;
+  --lemon-line: #ecdf93;
+  --lemon-edge: #d8c55c;
+  --olive: #6b5d00;
+  --ink: #1d1c14;
+  --bg: #fcfbf5;
+  --surface: #ffffff;
+  --border: #e5e1cd;
+  --border-strong: #c8c3a6;
+  --text: #1d1c14;
+  --muted: #5d5a4a;
+  --placeholder: #77745f;
+  --danger: #b42318;
+  --danger-soft: #fdeceb;
+  --success: #17653a;
+  --doing: #bd7400;
+  --done: #2e8b4f;
+  /* 입체감: 검은 선 대신 따뜻한 갈색 계열의 약한 그림자와 윗면 하이라이트로 면을 구분한다. */
+  --shadow-sm: 0 1px 2px rgba(90, 75, 0, 0.08), 0 2px 6px rgba(90, 75, 0, 0.06);
+  --shadow-md: 0 1px 2px rgba(90, 75, 0, 0.08), 0 4px 14px rgba(90, 75, 0, 0.08);
+  --shadow-lg: 0 2px 4px rgba(90, 75, 0, 0.08), 0 12px 32px rgba(90, 75, 0, 0.12);
+  --shadow-btn: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(90, 75, 0, 0.22);
+  --shadow-inset: inset 0 1px 2px rgba(90, 75, 0, 0.1);
+  --radius: 6px;
+  --radius-sm: 4px;
+  --font: system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+}
+
 * {
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
-  background: #f5f6f8;
-  color: #222;
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ---- 상단 바 ---- */
+.topbar {
+  background: var(--lemon);
+  border-bottom: 1px solid var(--lemon-edge);
+  box-shadow: 0 2px 8px rgba(90, 75, 0, 0.16);
+  color: var(--ink);
+}
+
+.topbar-inner {
+  max-width: 880px;
+  min-height: 58px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.brand-emoji {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.user-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 0.9rem;
+}
+
+.user-label {
+  color: #4a4500;
+}
+
+.user-name {
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.topbar .btn {
+  min-height: 32px;
+  padding: 3px 12px;
+  border-color: var(--lemon-edge);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.topbar .btn:hover {
+  background: #fff;
+  border-color: var(--lemon-edge);
+}
+
+/* ---- 레이아웃 ---- */
 .container {
-  max-width: 640px;
-  margin: 40px auto;
-  padding: 0 16px;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 28px 24px;
 }
 
-h1 {
-  margin-bottom: 24px;
+.panel {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
 }
 
-h2 {
-  font-size: 1.1rem;
-  margin-top: 32px;
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -20px -20px 16px;
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--lemon-line);
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--lemon-soft);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
 
 .count {
-  color: #666;
-  font-weight: normal;
+  min-width: 1.6em;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--lemon-edge);
+  background: var(--lemon);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-align: center;
 }
 
+/* ---- 입력 요소 ---- */
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+input[type="text"],
+input[type="password"],
+input[type="search"],
+input[type="date"],
+select,
+textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-inset);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--placeholder);
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--olive);
+  box-shadow: var(--shadow-inset), 0 0 0 3px rgba(240, 205, 40, 0.4);
+}
+
+:is(input, select, textarea, button):focus-visible {
+  outline: 2px solid var(--olive);
+  outline-offset: 2px;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled,
+button:disabled {
+  background: #efede0;
+  color: #8a8672;
+  border-color: var(--border);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ---- 버튼 ---- */
+button {
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.btn,
+.task-actions button,
+.task-edit .form-row button {
+  min-height: 34px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: var(--shadow-btn);
+  transition: background-color 0.12s, border-color 0.12s;
+}
+
+.btn:hover,
+.task-actions button:hover,
+.task-edit .form-row button:hover {
+  background: var(--lemon-tint);
+  border-color: var(--lemon-edge);
+}
+
+/* 눌렀을 때 1px 내려가며 그림자가 줄어든다. */
+.btn:active,
+.task-actions button:active,
+.task-edit .form-row button:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 2px rgba(90, 75, 0, 0.2);
+}
+
+.btn-primary,
+.task-edit .form-row button:first-of-type {
+  border-color: var(--lemon-edge);
+  background: var(--lemon);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.btn-primary:hover,
+.task-edit .form-row button:first-of-type:hover {
+  background: var(--lemon-strong);
+  border-color: var(--lemon-edge);
+}
+
+.btn-primary:disabled {
+  background: #efe8b0;
+  border-color: #cfc88f;
+  color: #8a8350;
+}
+
+.task-actions button:last-of-type:hover {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--olive);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-button:hover {
+  color: var(--ink);
+}
+
+.link-button:active {
+  transform: none;
+  box-shadow: none;
+}
+
+/* ---- 로그인·회원가입 ---- */
+.auth-card {
+  display: grid;
+  grid-template-columns: 5fr 6fr;
+  max-width: 780px;
+  margin: 36px auto 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.auth-aside {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 36px 32px;
+  background: var(--lemon);
+  color: var(--ink);
+}
+
+.auth-aside-title {
+  margin: 0 0 20px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+
+.auth-aside-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.auth-aside-list li {
+  position: relative;
+  padding: 0 0 12px 18px;
+}
+
+.auth-aside-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 9px;
+  height: 3px;
+  background: var(--ink);
+}
+
+.auth-body {
+  padding: 32px;
+}
+
+.auth-title {
+  margin: 0 0 16px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-form label {
+  margin-top: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.auth-form .hint {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 10px 12px;
+}
+
+.auth-form .btn {
+  margin-top: 18px;
+  min-height: 42px;
+}
+
+.auth-notice {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--done);
+  background: #eef8f1;
+  color: var(--success);
+  font-size: 0.875rem;
+}
+
+.auth-notice:empty {
+  display: none;
+}
+
+.auth-switch {
+  margin: 18px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+/* ---- 오류 문구 ---- */
+.form-error {
+  margin: 8px 0 0;
+  color: var(--danger);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.form-error:empty {
+  display: none;
+}
+
+/* ---- 새 할 일 폼 ---- */
 .task-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .form-row {
@@ -42,17 +437,10 @@ h2 {
   gap: 8px;
 }
 
-.task-form input,
-.task-form select,
-.task-form textarea,
-.filter-bar input,
-.filter-bar select {
-  padding: 8px 10px;
-  font-size: 1rem;
-  font-family: inherit;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: #fff;
+.form-row label {
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .task-form #task-title {
@@ -61,66 +449,17 @@ h2 {
   padding: 10px 12px;
 }
 
-.task-form textarea,
-.task-edit textarea {
-  width: 100%;
-  resize: vertical;
+.task-form .btn {
+  min-height: 42px;
+  padding: 0 22px;
 }
 
-.task-form button {
-  padding: 10px 18px;
-  font-size: 1rem;
-  border: none;
-  border-radius: 6px;
-  background: #2f6fed;
-  color: #fff;
-  cursor: pointer;
-}
-
-.task-form button:hover {
-  background: #2459c4;
-}
-
-.task-form input:disabled,
-.task-form select:disabled,
-.task-form textarea:disabled,
-.task-form button:disabled {
-  background: #e0e0e0;
-  color: #888;
-  cursor: not-allowed;
-}
-
-.form-error {
-  min-height: 1.2em;
-  margin: 8px 0 0;
-  color: #c62828;
-  font-size: 0.9rem;
-}
-
-.empty-message {
-  color: #888;
-}
-
-.task-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.task-list li {
-  padding: 12px 14px;
-  margin-bottom: 8px;
-  background: #fff;
-  border: 1px solid #e2e4e8;
-  border-radius: 6px;
-  overflow-wrap: anywhere;
-}
-
+/* ---- 검색·필터 ---- */
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .filter-bar input {
@@ -128,16 +467,67 @@ h2 {
   min-width: 160px;
 }
 
+/* ---- 목록 ---- */
+.empty-message {
+  margin: 0;
+  padding: 28px 0;
+  color: var(--muted);
+  text-align: center;
+  border: 1px dashed var(--lemon-line);
+  border-radius: var(--radius);
+  background: var(--lemon-tint);
+}
+
+.task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.task-list:empty {
+  display: none;
+}
+
+.task-list li {
+  padding: 14px 16px 14px 19px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+
+.task-list li:last-child {
+  border-bottom: none;
+}
+
+.task-list li:hover {
+  background: var(--lemon-tint);
+}
+
+/* 왼쪽 레일: 상태(할 일 회색·진행 중 호박색·완료 초록), 지연이면 빨강이 우선한다. */
+.task-list li {
+  box-shadow: inset 4px 0 0 var(--border-strong);
+}
+
+.task-list li.status-doing {
+  box-shadow: inset 4px 0 0 var(--doing);
+}
+
+.task-list li.status-done {
+  box-shadow: inset 4px 0 0 var(--done);
+}
+
+.task-list li.overdue {
+  box-shadow: inset 4px 0 0 var(--danger);
+}
+
 .task-main {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-}
-
-.task-edit {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: 16px;
 }
 
 .task-info {
@@ -146,7 +536,13 @@ h2 {
 }
 
 .task-title {
-  font-weight: 600;
+  font-weight: 700;
+}
+
+.task-list li.done .task-title {
+  color: var(--placeholder);
+  font-weight: 500;
+  text-decoration: line-through;
 }
 
 .task-meta {
@@ -157,36 +553,43 @@ h2 {
 }
 
 .badge {
-  padding: 2px 8px;
-  font-size: 0.8rem;
-  border-radius: 999px;
-  background: #eef0f3;
-  color: #444;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #f3f1e6;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.6;
 }
 
 .badge.priority-high {
-  background: #fde8e8;
-  color: #b42318;
+  border-color: #f1c5c0;
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .badge.priority-low {
-  background: #eef4ff;
-  color: #3555a5;
+  border-color: #cfd6e4;
+  background: #eef1f6;
+  color: #3b4a63;
+}
+
+.badge.due {
+  background: var(--surface);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .badge.overdue-badge {
-  background: #c62828;
+  border-color: var(--danger);
+  background: var(--danger);
   color: #fff;
-  font-weight: 600;
-}
-
-.task-list li.overdue {
-  border-left: 4px solid #c62828;
 }
 
 .task-description {
   margin: 8px 0 0;
-  color: #555;
+  color: var(--muted);
   font-size: 0.9rem;
   white-space: pre-wrap;
 }
@@ -194,42 +597,78 @@ h2 {
 .task-actions {
   display: flex;
   flex-shrink: 0;
+  align-items: center;
   gap: 6px;
 }
 
-.task-edit input,
-.task-edit textarea,
-.task-edit select {
-  font-family: inherit;
-  padding: 6px 8px;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.task-list button,
-.task-list select {
-  padding: 4px 10px;
+.task-actions select {
+  min-height: 34px;
+  padding: 5px 8px;
   font-size: 0.9rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #fff;
-  cursor: pointer;
 }
 
-.task-list button:hover {
-  background: #f0f0f0;
+/* ---- 수정 폼 ---- */
+.task-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.task-list li.done .task-title {
-  color: #888;
-  text-decoration: line-through;
+.task-edit input[type="text"] {
+  width: 100%;
+  padding: 9px 12px;
 }
 
-@media (max-width: 480px) {
+/* ---- 좁은 화면 ---- */
+@media (max-width: 600px) {
+  .container {
+    padding: 16px;
+  }
+
+  .topbar-inner {
+    padding: 0 16px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .panel-title {
+    margin: -16px -16px 14px;
+    padding: 11px 16px;
+  }
+
+  .auth-card {
+    grid-template-columns: 1fr;
+    margin-top: 16px;
+  }
+
+  .auth-aside {
+    display: none;
+  }
+
+  .auth-body {
+    padding: 22px 20px;
+  }
+
   .task-main {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
+  }
+
+  .task-actions {
+    flex-wrap: wrap;
+  }
+
+  .user-label {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
   }
 }
 
@@ -240,84 +679,4 @@ h2 {
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
-}
-
-[hidden] {
-  display: none !important;
-}
-
-.auth-section {
-  max-width: 360px;
-}
-
-.auth-section h2 {
-  margin-top: 0;
-}
-
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.auth-form input {
-  padding: 10px 12px;
-  font-size: 1rem;
-  font-family: inherit;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: #fff;
-}
-
-.auth-form label {
-  margin-top: 6px;
-  font-size: 0.9rem;
-}
-
-.auth-form button {
-  margin-top: 12px;
-  padding: 10px 18px;
-  font-size: 1rem;
-  border: none;
-  border-radius: 6px;
-  background: #2f6fed;
-  color: #fff;
-  cursor: pointer;
-}
-
-.auth-form button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.auth-notice {
-  color: #1a7f37;
-  min-height: 1.2em;
-  margin: 0 0 4px;
-}
-
-.link-button {
-  border: none;
-  background: none;
-  color: #2f6fed;
-  cursor: pointer;
-  padding: 0;
-  font-size: 0.95rem;
-  text-decoration: underline;
-}
-
-.user-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.user-bar button {
-  padding: 6px 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: #fff;
-  cursor: pointer;
 }

@@ -63,6 +63,7 @@ const signupPasswordConfirm = document.getElementById("signup-password-confirm")
 const signupButton = document.getElementById("signup-button");
 const authSwitchButton = document.getElementById("auth-switch-button");
 const userName = document.getElementById("user-name");
+const userBar = document.getElementById("user-bar");
 const logoutButton = document.getElementById("logout-button");
 
 class ApiError extends Error {
@@ -409,7 +410,7 @@ function createBadge(text, className) {
 function createTaskItem(task, today) {
   const item = document.createElement("li");
   item.dataset.id = String(task.id);
-  const classes = [];
+  const classes = [`status-${task.status.toLowerCase()}`];
   if (task.status === "DONE") {
     classes.push("done");
   }
@@ -607,6 +608,7 @@ function showAuth(mode, notice) {
   authMode = mode;
   const isLogin = mode === "login";
   appSection.hidden = true;
+  userBar.hidden = true;
   authSection.hidden = false;
   loginForm.hidden = !isLogin;
   signupForm.hidden = isLogin;
@@ -624,6 +626,7 @@ function showAuth(mode, notice) {
 function showApp(user) {
   authSection.hidden = true;
   appSection.hidden = false;
+  userBar.hidden = false;
   clearAuthFields();
   authNotice.textContent = "";
   authError.textContent = "";

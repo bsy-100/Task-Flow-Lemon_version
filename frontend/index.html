@@ -7,11 +7,32 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="container">
-    <h1>Task Flow</h1>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <h1 class="brand">
+        <span class="brand-emoji" aria-hidden="true">🍋</span>
+        Task Flow
+      </h1>
+      <div id="user-bar" class="user-bar" hidden>
+        <span class="user-label">사용자</span>
+        <strong id="user-name" class="user-name"></strong>
+        <button id="logout-button" type="button" class="btn btn-secondary">로그아웃</button>
+      </div>
+    </div>
+  </header>
 
-    <section id="auth-section" class="auth-section" hidden aria-labelledby="auth-heading">
-      <h2 id="auth-heading">로그인</h2>
+  <main class="container">
+    <section id="auth-section" class="auth-card" hidden aria-labelledby="auth-heading">
+      <div class="auth-aside" aria-hidden="true">
+        <p class="auth-aside-title">업무 흐름을 한 곳에서 관리하세요</p>
+        <ul class="auth-aside-list">
+          <li>할 일을 등록하고 단계별로 상태를 관리합니다</li>
+          <li>우선순위와 마감일로 지연 업무를 바로 확인합니다</li>
+          <li>내 계정의 할 일은 나만 볼 수 있습니다</li>
+        </ul>
+      </div>
+      <div class="auth-body">
+      <h2 id="auth-heading" class="auth-title">로그인</h2>
       <p id="auth-notice" class="auth-notice" role="status"></p>
       <p id="auth-error" class="form-error" role="alert"></p>
 
@@ -20,77 +41,76 @@
         <input id="login-username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false">
         <label for="login-password">비밀번호</label>
         <input id="login-password" type="password" autocomplete="current-password">
-        <button id="login-button" type="submit">로그인</button>
+        <button id="login-button" type="submit" class="btn btn-primary">로그인</button>
       </form>
 
       <form id="signup-form" class="auth-form" novalidate hidden>
-        <label for="signup-username">사용자명 (영문·숫자·_ 4~20자)</label>
+        <label for="signup-username">사용자명 <span class="hint">영문·숫자·_ 4~20자</span></label>
         <input id="signup-username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false">
-        <label for="signup-password">비밀번호 (8~72자)</label>
+        <label for="signup-password">비밀번호 <span class="hint">8~72자</span></label>
         <input id="signup-password" type="password" autocomplete="new-password">
         <label for="signup-password-confirm">비밀번호 확인</label>
         <input id="signup-password-confirm" type="password" autocomplete="new-password">
-        <button id="signup-button" type="submit">회원가입</button>
+        <button id="signup-button" type="submit" class="btn btn-primary">회원가입</button>
       </form>
 
       <p class="auth-switch">
         <button id="auth-switch-button" type="button" class="link-button">계정이 없으면 회원가입</button>
       </p>
+      </div>
     </section>
 
     <div id="app-section" hidden>
-    <div class="user-bar">
-      <span>사용자: <strong id="user-name"></strong></span>
-      <button id="logout-button" type="button">로그아웃</button>
-    </div>
+      <section class="panel" aria-labelledby="new-heading">
+        <h2 id="new-heading" class="panel-title">새 할 일</h2>
+        <form id="task-form" class="task-form" novalidate>
+          <div class="form-row">
+            <label for="task-title" class="sr-only">할 일 제목</label>
+            <input id="task-title" name="title" type="text" placeholder="할 일 제목 (1~100자)" autocomplete="off">
+            <button id="submit-button" type="submit" class="btn btn-primary">등록</button>
+          </div>
+          <div class="form-row">
+            <label for="task-priority">우선순위</label>
+            <select id="task-priority" name="priority">
+              <option value="HIGH">높음</option>
+              <option value="NORMAL" selected>보통</option>
+              <option value="LOW">낮음</option>
+            </select>
+            <label for="task-due">마감일</label>
+            <input id="task-due" name="due_date" type="date">
+          </div>
+          <label for="task-description" class="sr-only">설명</label>
+          <textarea id="task-description" name="description" rows="2" placeholder="설명 (선택, 최대 2000자)"></textarea>
+        </form>
+        <p id="form-error" class="form-error" role="alert"></p>
+        <p id="api-error" class="form-error" role="alert"></p>
+      </section>
 
-    <form id="task-form" class="task-form" novalidate>
-      <div class="form-row">
-        <label for="task-title" class="sr-only">할 일 제목</label>
-        <input id="task-title" name="title" type="text" placeholder="할 일 제목 (1~100자)" autocomplete="off">
-        <button id="submit-button" type="submit">등록</button>
-      </div>
-      <div class="form-row">
-        <label for="task-priority">우선순위</label>
-        <select id="task-priority" name="priority">
-          <option value="HIGH">높음</option>
-          <option value="NORMAL" selected>보통</option>
-          <option value="LOW">낮음</option>
-        </select>
-        <label for="task-due">마감일</label>
-        <input id="task-due" name="due_date" type="date">
-      </div>
-      <label for="task-description" class="sr-only">설명</label>
-      <textarea id="task-description" name="description" rows="2" placeholder="설명 (선택, 최대 2000자)"></textarea>
-    </form>
-    <p id="form-error" class="form-error" role="alert"></p>
-    <p id="api-error" class="form-error" role="alert"></p>
+      <section class="panel" aria-labelledby="list-heading">
+        <h2 id="list-heading" class="panel-title">할 일 목록 <span id="task-count" class="count">(0)</span></h2>
 
-    <section aria-labelledby="list-heading">
-      <h2 id="list-heading">할 일 목록 <span id="task-count" class="count">(0)</span></h2>
+        <div class="filter-bar">
+          <label for="search-input" class="sr-only">제목 검색</label>
+          <input id="search-input" type="search" placeholder="제목 검색" autocomplete="off">
+          <label for="filter-status" class="sr-only">상태 필터</label>
+          <select id="filter-status">
+            <option value="">상태 전체</option>
+            <option value="TODO">할 일</option>
+            <option value="DOING">진행 중</option>
+            <option value="DONE">완료</option>
+          </select>
+          <label for="filter-priority" class="sr-only">우선순위 필터</label>
+          <select id="filter-priority">
+            <option value="">우선순위 전체</option>
+            <option value="HIGH">높음</option>
+            <option value="NORMAL">보통</option>
+            <option value="LOW">낮음</option>
+          </select>
+        </div>
 
-      <div class="filter-bar">
-        <label for="search-input" class="sr-only">제목 검색</label>
-        <input id="search-input" type="search" placeholder="제목 검색" autocomplete="off">
-        <label for="filter-status" class="sr-only">상태 필터</label>
-        <select id="filter-status">
-          <option value="">상태 전체</option>
-          <option value="TODO">할 일</option>
-          <option value="DOING">진행 중</option>
-          <option value="DONE">완료</option>
-        </select>
-        <label for="filter-priority" class="sr-only">우선순위 필터</label>
-        <select id="filter-priority">
-          <option value="">우선순위 전체</option>
-          <option value="HIGH">높음</option>
-          <option value="NORMAL">보통</option>
-          <option value="LOW">낮음</option>
-        </select>
-      </div>
-
-      <p id="empty-message" class="empty-message">등록된 할 일이 없습니다.</p>
-      <ul id="task-list" class="task-list"></ul>
-    </section>
+        <p id="empty-message" class="empty-message">등록된 할 일이 없습니다.</p>
+        <ul id="task-list" class="task-list"></ul>
+      </section>
     </div>
   </main>
 
