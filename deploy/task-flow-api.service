@@ -1,0 +1,22 @@
+# Task Flow API(App 서버) systemd 서비스. 경로와 사용자는 App 서버에 맞게 고친다.
+# 설치: sudo cp deploy/task-flow-api.service /etc/systemd/system/
+#       sudo systemctl daemon-reload && sudo systemctl enable --now task-flow-api
+# 시작/중지/상태: sudo systemctl start|stop|restart task-flow-api.service, systemctl status task-flow-api.service
+# DB 접속 정보는 WorkingDirectory의 .env(권한 600)에서 읽으며 이 파일에는 적지 않는다.
+# SERVE_FRONTEND는 켜지 않는다(화면은 T14의 Nginx가 담당).
+[Unit]
+Description=Task Flow API (FastAPI + uvicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=taskflow
+Group=taskflow
+WorkingDirectory=/opt/task-flow
+# 0.0.0.0은 Web 서버가 접근하게 하기 위함이다. 8000번은 보안그룹/방화벽에서 Web 서버만 허용한다.
+ExecStart=/opt/task-flow/.venv/bin/python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -69,8 +69,13 @@
 ## 5장: 서버 분리
 - [x] T12: DB 서버 구성 후 App 서버에서 SELECT 1 확인.
   기록: 사용자가 별도로 확인했다고 보고함(세부 출력·구성 내용은 기록되지 않음).
-- [ ] T13: App 서버 코드·가상환경·환경변수·systemd 구성.
+- [x] T13: App 서버 코드·가상환경·환경변수·systemd 구성.
   확인: App에서 /api/health 응답.
+  기록: 변경 파일 deploy/task-flow-api.service, deploy/setup-app.sh(추가). 같은 WSL 안에서 App 서버를 흉내 내어 구성함(별도 서버 아님).
+  실행 명령: sudo bash deploy/setup-app.sh (taskflow 사용자, /opt/task-flow 코드 복사, 가상환경·패키지, .env 복사 600, systemd 등록·기동). 사용자가 직접 실행.
+  서비스 이름: task-flow-api.service(예전 task-flow.service는 제거). 시작: sudo systemctl start task-flow-api.service
+  확인: systemctl is-active=active, is-enabled=enabled, 프로세스 사용자 taskflow, /opt/task-flow/.env 권한 600(taskflow), /api/health {"status":"ok"}, /api/tasks 200.
+  서비스가 0.0.0.0:8000이므로 실제 서버에서는 8000번을 Web 서버만 허용. 서버 재부팅 후 자동 기동은 미확인.
 - [ ] T14: Web 서버 Nginx와 정적 파일·/api 프록시 구성.
   확인: Web 주소로 등록, DB 저장, App 재시작 후 유지.
 ## 실행 기준
